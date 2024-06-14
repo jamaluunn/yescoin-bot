@@ -332,13 +332,13 @@ def main():
                 squad_members = squad_info['data']['squadInfo']['squadMembers']
                 print(f"{random.choice(available_colors)+Style.BRIGHT}\r[ Squad ] : {squad_title} | {squad_members} Members")
             else:
-                print(f"{Fore.YELLOW + Style.BRIGHT}\r[ Squad ] : Belum Join Squad. Joining Ghalibie.", end="", flush=True)
+                print(f"{Fore.YELLOW + Style.BRIGHT}\r[ Squad ] : Belum Join Squad. Joining Airdropversity.", end="", flush=True)
                 time.sleep(3)
-                join_result = join_squad(token, "t.me/ghalibie")
+                join_result = join_squad(token, "t.me/AirdropversityID")
                 if join_result:
-                    print(f"{random.choice(available_colors) + Style.BRIGHT}\r[ Squad ] : Welcome Pemulung {nickname} - Ghalibie !      ", flush=True)
+                    print(f"{random.choice(available_colors) + Style.BRIGHT}\r[ Squad ] : Welcome Pemulung {nickname} - Airdropversity!      ", flush=True)
                 else:
-                    print(f"{random.choice(available_colors) + Style.BRIGHT}\r[ Squad ] : Failed to join Ghalibie.", flush=True)
+                    print(f"{random.choice(available_colors) + Style.BRIGHT}\r[ Squad ] : Failed to join Airdropversity.", flush=True)
    
             print(f"{random.choice(available_colors)+Style.BRIGHT}\r[ Balance ] : Getting...", end="", flush=True)
             balance = fetch_account_info(token)
