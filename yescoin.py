@@ -155,7 +155,7 @@ def collect_from_special_box(token, box_type, coin_count):
         result = response.json()
         if result['code'] == 0:
             if result['data']['collectStatus']:
-                print(f"{random.choice(available_colors) + Style.BRIGHT}\r[ Chest ] : Collected {result['data']['collectAmount']} Coins", flush=True)
+                print(f"{random.choice(available_colors) + Style.BRIGHT}\r[ Chest ] : Collected {result['data']['collectAmount']} Coins                                                     ", flush=True)
           
                 return True, result['data']['collectAmount']
             else:
@@ -174,7 +174,7 @@ def attempt_collect_special_box(token, box_type, initial_coin_count):
         success, collected_amount = collect_from_special_box(token, box_type, coin_count)
         if success:
             return collected_amount
-        coin_count -= 10  # Kurangi jumlah koin jika gagal karena batas
+        coin_count -= 20  # Kurangi jumlah koin jika gagal karena batas
     print(f"{Fore.RED + Style.BRIGHT}\r[ Chest ] : Unable to collect any coins after adjustments", flush=True)
     return 0
 
@@ -246,9 +246,77 @@ def recover_coin_pool(token):
     except Exception as e:
         print(f"{Fore.RED + Style.BRIGHT}\r[ Recovery ] : Error: {e}", flush=True)
         return False
-    
+
+def fetch_task_list(token):
+    url = 'https://api.yescoin.gold/task/getCommonTaskList'
+    headers = get_headers(token)
+    try:
+        response = requests.get(url, headers=headers)
+        response.raise_for_status()
+        tasks = response.json()
+        if tasks['code'] == 0:
+            return tasks['data']
+        else:
+            print(f"{Fore.RED + Style.BRIGHT}\r[ Task ] : Failed to get task list: {tasks['message']}", flush=True)
+            return None
+    except Exception as e:
+        print(f"{Fore.RED + Style.BRIGHT}Error: {e}")
+        return None
+def finish_task(token, task_id):
+    url = 'https://api.yescoin.gold/task/finishTask'
+    headers = get_headers(token)
+    data = json.dumps(task_id)
+    try:
+        response = requests.post(url, headers=headers, data=data)
+        response.raise_for_status()
+        result = response.json()
+   
+        if result['code'] == 0:
+            print(f"{Fore.GREEN + Style.BRIGHT}\r[ Task ] : Task {task_id} finished. Bonus: {result['data']['bonusAmount']}", flush=True)
+            return True
+        else:
+            # print(result)
+            print(f"{Fore.RED + Style.BRIGHT}\r[ Task ] : Failed to finish task {task_id}: {result['message']}", flush=True)
+            return False
+    except Exception as e:
+        print(f"{Fore.RED + Style.BRIGHT}\r[ Task ] : Error: {e}", flush=True)
+        return False
+
+def process_tasks(token):
+    tasks = fetch_task_list(token)
+    if tasks:
+        for task in tasks:
+            if task['taskStatus'] == 0:  # Jika tugas belum diklaim
+                finish_task(token, task['taskId'])
+            else:
+                print(f"{random.choice(available_colors)+Style.BRIGHT}\r[ Task ] : Task already finished          ", flush=True)
+     
 
 import random
+def upgrade_level(token, current_level, target_level, upgrade_type):
+
+    url = 'https://api.yescoin.gold/build/levelUp'
+    headers = get_headers(token)
+    data = json.dumps(upgrade_type)
+    if upgrade_type == '1':
+            upgrade_type_name = 'Multi Value'
+    else:
+        upgrade_type_name = 'Fill Rate'
+    # Lakukan upgrade hingga mencapai level target
+    while current_level < target_level:
+        response = requests.post(url, headers=headers, data=data)
+        response.raise_for_status()
+        result = response.json()
+       
+        if result['code'] == 0:
+            current_level += 1
+            print(f"{random.choice(available_colors)+Style.BRIGHT}\r[ Upgrade ] : {upgrade_type_name} Upgrade to {current_level}            ", flush=True)
+        else:
+            print(f"{random.choice(available_colors)+Style.BRIGHT}\r[ Upgrade ] : Failed to upgrade: {result['message']}        ", flush=True)
+            break
+
+    if current_level == target_level:
+        print(f"{random.choice(available_colors)+Style.BRIGHT}\r[ Upgrade ] : {upgrade_type_name} already at level {current_level}          ", flush=True)
 
 def main():
     tokens = load_tokens('tokens.txt')
@@ -297,6 +365,18 @@ def main():
                 print(f"{random.choice(available_colors)+Style.BRIGHT}\r[ Multivalue ] : Level {single_coin_value}", flush=True)
                 print(f"{random.choice(available_colors)+Style.BRIGHT}\r[ Coin Limit ] : Level {single_coin_level}", flush=True)
                 print(f"{random.choice(available_colors)+Style.BRIGHT}\r[ Fill Rate ] : Level {coin_pool_recovery_speed}", flush=True)
+            if cek_task_enable == 'y':
+                print(f"{random.choice(available_colors)+Style.BRIGHT}\r[ Task ] : Trying to finish task..", end="", flush=True)
+                process_tasks(token)
+            time.sleep(2)
+            if upgrade_multi_enable == 'y':
+                print(f"{random.choice(available_colors)+Style.BRIGHT}\r[ Upgrade ] : Upgrading Multi Value...", end="", flush=True)
+                upgrade_level(token, single_coin_value, max_level, '1')
+            time.sleep(2)
+            if upgrade_fill_enable == 'y':
+                print(f"{random.choice(available_colors)+Style.BRIGHT}\r[ Upgrade ] : Upgrading Fill Rate...", end="", flush=True)
+                upgrade_level(token, coin_pool_recovery_speed, max_level, '2')
+            
             print(f"{random.choice(available_colors)+Style.BRIGHT}\r[ Game Info ] : Getting...", end="", flush=True)
             collect_info = fetch_game_info(token)
             if collect_info is None:
@@ -305,7 +385,7 @@ def main():
             else:
                 single_coin_value = collect_info['data'].get('singleCoinValue', 0)
                 coin_pool_left_count = collect_info['data'].get('coinPoolLeftCount', 0)
-                print(f"{random.choice(available_colors) + Style.BRIGHT}\r[ Coin Left ] : {coin_pool_left_count}              ", flush=True)
+                print(f"{random.choice(available_colors) + Style.BRIGHT}\r[ Coin Left ] : {coin_pool_left_count}                              ", flush=True)
                 
                 print(f"{random.choice(available_colors)+Style.BRIGHT}\r[ Collect ] : Collecting Coin...", end="", flush=True)
                 if coin_pool_left_count > 0:
@@ -313,7 +393,7 @@ def main():
                     collect_result = collect_coin(token, amount)
                     if collect_result and collect_result.get('code') == 0:
                         collected_amount = collect_result['data']['collectAmount']
-                        print(f"{random.choice(available_colors) + Style.BRIGHT}\r[ Collect ] : Collected {random.choice(available_colors)+Style.BRIGHT}{collected_amount}           ", flush=True)
+                        print(f"{random.choice(available_colors) + Style.BRIGHT}\r[ Collect ] : Collected {random.choice(available_colors)+Style.BRIGHT}{collected_amount}                                                  ", flush=True)
                     else:
                         print(f"{random.choice(available_colors)+Style.BRIGHT}\r[ Collect ] : Failed to collect coins", flush=True)
             
@@ -346,8 +426,9 @@ def main():
                 print(f"{random.choice(available_colors)+Style.BRIGHT}\r[ Recovery ] : No recovery available", flush=True)
             time.sleep(2)
             print(f"{random.choice(available_colors)+Style.BRIGHT}\r[ Free Chest ] : Trying to collect..", end="", flush=True)
-            collected_amount = attempt_collect_special_box(token, 1, 230) 
+            collected_amount = attempt_collect_special_box(token, 1, 200) 
             time.sleep(2)
+
         print(f"\n{random.choice(available_colors)+Style.BRIGHT}========={Fore.WHITE+Style.BRIGHT}Semua akun berhasil di proses{Fore.GREEN+Style.BRIGHT}=========", end="", flush=True)
         import sys
         waktu_tunggu = 15  # 5 menit dalam detik
@@ -358,8 +439,42 @@ def main():
         sys.stdout.write("\rWaktu claim berikutnya telah tiba!                                                          \n")
 
             
+import argparse    
+def parse_arguments():
+    parser = argparse.ArgumentParser(description='Blum BOT')
+    parser.add_argument('--task', type=str, choices=['y', 'n'], help='Cek and Claim Task (y/n)')
+    parser.add_argument('--multi', type=str, choices=['y', 'n'], help='Upgrade Multi Value (y/n)')
+    parser.add_argument('--fill', type=str, choices=['y', 'n'], help='Upgrade Fill Rate (y/n)')
+    parser.add_argument('--max-level', type=int, help='Level maksimum untuk upgrade (default: 5)')
     
-        
+    args = parser.parse_args()
+
+    if args.task is None:
+        task_input = input("Apakah Anda ingin cek dan claim task? (y/n, default n): ").strip().lower()
+        args.task = task_input if task_input in ['y', 'n'] else 'n'
+    
+    if args.multi is None:
+        multi_input = input("Apakah Anda ingin upgrade multi value? (y/n, default n): ").strip().lower()
+        args.multi = multi_input if multi_input in ['y', 'n'] else 'n'
+    
+    if args.fill is None:
+        fill_input = input("Apakah Anda ingin upgrade fill rate? (y/n, default n): ").strip().lower()
+        args.fill = fill_input if fill_input in ['y', 'n'] else 'n'
+    
+    if (args.multi == 'y' or args.fill == 'y') and args.max_level is None:
+        max_level_input = input("Masukkan level maksimum untuk upgrade (default: 5): ").strip()
+        args.max_level = int(max_level_input) if max_level_input else 5
+    elif args.max_level is None:
+        args.max_level = 5  # Default value if max_level is not provided and neither multi nor fill is 'y'
+    
+    return args
+
+args = parse_arguments()
+cek_task_enable = args.task
+upgrade_multi_enable = args.multi
+upgrade_fill_enable = args.fill
+max_level = args.max_level
+
 
 if __name__ == '__main__':
     main()
